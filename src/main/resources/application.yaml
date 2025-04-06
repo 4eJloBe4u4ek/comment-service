@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: Comment
+  datasource:
+    url: jdbc:postgresql://localhost:5435/comment
+    username: postgres
+    password: password
+  liquibase:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  kafka:
+    bootstrap-servers: localhost:19092
+    topics:
+      news-deleted: news-deleted
+    consumer.properties:
+      enable.auto.commit: false
+      auto.offset.reset: earliest
+      isolation.level: read_committed
+      fetch.min.bytes: 1024
+      fetch.max.bytes: 1048576
+      fetch.max.wait.ms: 10000
+      max.poll.interval.ms: 10000
+      max.poll.records: 10
+  cloud.zookeeper:
+    config.enabled: false
+    connect-string: localhost:2181
+
+jwt:
+  secret: ${JWT_SECRET}
+
+server:
+  port: 8084
