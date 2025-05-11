@@ -10,6 +10,19 @@ import java.util.Arrays;
 
 @RestControllerAdvice
 public class CommentExceptionHandler {
+    @ExceptionHandler(NewsNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNewsNotFoundException(NewsNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiErrorResponse(
+                        "Incorrect request",
+                        String.valueOf(HttpStatus.NOT_FOUND),
+                        ex.getClass().getSimpleName(),
+                        ex.getMessage(),
+                        Arrays.stream(ex.getStackTrace())
+                                .map(StackTraceElement::toString)
+                                .toList()));
+    }
+
     @ExceptionHandler(CommentNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleCommentNotFoundException(CommentNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

@@ -1,5 +1,6 @@
 package backend.commentservice.service;
 
+import backend.commentservice.client.NewsClient;
 import backend.commentservice.dto.CommentResponse;
 import backend.commentservice.dto.ListCommentResponse;
 import backend.commentservice.entity.CommentEntity;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,9 +24,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CommentService {
     private final CommentRepository commentRepository;
+    private final NewsClient newsClient;
 
     public ListCommentResponse getCommentsPage(Long newsId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "time");
         Page<CommentEntity> commentPage = commentRepository.findByNewsId(newsId, pageable);
 
         List<CommentResponse> commentResponses = commentPage.getContent().stream().map(this::toCommentResponse).toList();
@@ -36,6 +39,8 @@ public class CommentService {
     }
 
     public CommentResponse createComment(Long newsId, String text) {
+        newsClient.verifyNewsExists(newsId);
+
         String author = getCurrentUserName();
         CommentEntity comment = new CommentEntity();
         comment.setAuthor(author);
@@ -93,7 +98,7 @@ public class CommentService {
     }
 
     private String getCurrentUserName() {
-        return getAuthentication().getName();
+        return getAuthentication().getDetails().toString();
     }
 
     private CommentResponse toCommentResponse(CommentEntity commentEntity) {

@@ -26,25 +26,28 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
-        String username = null, jwtToken = null;
+        Long userId = null;
+        String jwtToken = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwtToken = authHeader.substring(7);
             try {
-                username = jwtUtil.extractUsername(jwtToken);
+                userId = jwtUtil.extractUserId(jwtToken);
             } catch (ExpiredJwtException | SignatureException e) {
                 authenticationEntryPoint.commence(request, response, new AuthenticationCredentialsNotFoundException(e.getMessage(), e));
                 return;
             }
         }
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                    username,
+                    userId,
                     null,
                     jwtUtil.extractRoles(jwtToken).stream()
                             .map(SimpleGrantedAuthority::new)
                             .toList()
             );
+            String usernameClaim = jwtUtil.extractUsername(jwtToken);
+            auth.setDetails(usernameClaim);
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
 
