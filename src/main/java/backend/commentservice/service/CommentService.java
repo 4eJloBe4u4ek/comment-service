@@ -4,14 +4,17 @@ import backend.commentservice.client.NewsClient;
 import backend.commentservice.dto.CommentResponse;
 import backend.commentservice.dto.ListCommentResponse;
 import backend.commentservice.entity.CommentEntity;
+import backend.commentservice.entity.CommentLikeEntity;
 import backend.commentservice.exception.CommentNotFoundException;
 import backend.commentservice.exception.UnauthorizedException;
+import backend.commentservice.repository.CommentLikeRepository;
 import backend.commentservice.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CommentService {
     private final CommentRepository commentRepository;
+    private final CommentLikeRepository commentLikeRepository;
     private final NewsClient newsClient;
 
     public ListCommentResponse getCommentsPage(Long newsId, int page, int size) {
@@ -34,10 +38,12 @@ public class CommentService {
         return new ListCommentResponse(commentResponses, commentResponses.size());
     }
 
+    @Transactional
     public CommentResponse getCommentById(Long newsId, Long commentId) {
         return toCommentResponse(findCommentByIdAndNewsId(commentId, newsId));
     }
 
+    @Transactional
     public CommentResponse createComment(Long newsId, String text) {
         newsClient.verifyNewsExists(newsId);
 
@@ -78,6 +84,33 @@ public class CommentService {
         commentRepository.deleteAllByNewsId(newsId);
     }
 
+    @Transactional
+    public void like(Long commentId) {
+        Long userId = Long.parseLong(getAuthentication().getName());
+        if (!commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)) {
+            CommentLikeEntity commentLike = new CommentLikeEntity();
+            commentLike.setCommentId(commentId);
+            commentLike.setUserId(userId);
+            commentLikeRepository.save(commentLike);
+        }
+    }
+
+    @Transactional
+    public void unlike(Long commentId) {
+        Long userId = Long.parseLong(getAuthentication().getName());
+        if (commentLikeRepository.existsByCommentIdAndUserId(commentId, userId)) {
+            commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+        }
+    }
+
+    public long countLikes(Long commentId) {
+        return commentLikeRepository.countByCommentId(commentId);
+    }
+
+    public boolean hasLiked(Long commentId) {
+        return commentLikeRepository.existsByCommentIdAndUserId(commentId, Long.parseLong(getAuthentication().getName()));
+    }
+
     private CommentEntity findCommentByIdAndNewsId(Long commentId, Long newsId) {
         return commentRepository.findById(commentId)
                 .filter(com -> com.getNewsId().equals(newsId))
@@ -102,12 +135,25 @@ public class CommentService {
     }
 
     private CommentResponse toCommentResponse(CommentEntity commentEntity) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean likedByMe = false;
+
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+            long userId = Long.parseLong(auth.getName());
+            likedByMe = commentLikeRepository.existsByCommentIdAndUserId(
+                    commentEntity.getId(), userId
+            );
+        }
+
+        long likesCount = commentLikeRepository.countByCommentId(commentEntity.getId());
         return new CommentResponse(
                 commentEntity.getId(),
                 commentEntity.getTime(),
                 commentEntity.getText(),
                 commentEntity.getAuthor(),
-                commentEntity.getNewsId()
+                commentEntity.getNewsId(),
+                likesCount,
+                likedByMe
         );
     }
 }

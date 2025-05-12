@@ -25,9 +25,11 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/news/*/comments/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/news/*/comments/**").hasAnyRole(Role.ADMIN.name(), Role.SUBSCRIBER.name())
+                        .requestMatchers(HttpMethod.POST, "/news/*/comments").hasAnyRole(Role.ADMIN.name(), Role.SUBSCRIBER.name())
                         .requestMatchers(HttpMethod.PUT, "/news/*/comments/**").hasAnyRole(Role.ADMIN.name(), Role.SUBSCRIBER.name())
-                        .requestMatchers(HttpMethod.DELETE, "/news/*/comments/**").hasAnyRole(Role.ADMIN.name(), Role.SUBSCRIBER.name())
+                        .requestMatchers(HttpMethod.DELETE, "/news/*/comments/*").hasAnyRole(Role.ADMIN.name(), Role.SUBSCRIBER.name())
+                        .requestMatchers(HttpMethod.POST, "/news/*/comments/*/like").hasAnyRole(Role.ADMIN.name(), Role.SUBSCRIBER.name(), Role.JOURNALIST.name())
+                        .requestMatchers(HttpMethod.DELETE, "/news/*/comments/*/like").hasAnyRole(Role.ADMIN.name(), Role.SUBSCRIBER.name(), Role.JOURNALIST.name())
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(eh -> eh.authenticationEntryPoint(jwtAuthenticationEntryPoint))

@@ -1,12 +1,10 @@
 package backend.commentservice.controller;
 
-import backend.commentservice.dto.CommentCreate;
-import backend.commentservice.dto.CommentResponse;
-import backend.commentservice.dto.CommentUpdate;
-import backend.commentservice.dto.ListCommentResponse;
+import backend.commentservice.dto.*;
 import backend.commentservice.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -38,5 +36,24 @@ public class CommentController {
     public ResponseEntity<Void> deleteComment(@PathVariable Long newsId, @PathVariable Long commentId) {
         commentService.deleteComment(newsId, commentId);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/news/{newsId}/comments/{commentId}/like")
+    public ResponseEntity<Void> like(@PathVariable Long commentId) {
+        commentService.like(commentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/news/{newsId}/comments/{commentId}/like")
+    public ResponseEntity<Void> unlike(@PathVariable Long commentId) {
+        commentService.unlike(commentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/news/{newsId}/comments/{commentId}/like")
+    public ResponseEntity<LikeStatusResponse> getLikes(@PathVariable Long commentId) {
+        long count = commentService.countLikes(commentId);
+        boolean liked = commentService.hasLiked(commentId);
+        return ResponseEntity.ok(new LikeStatusResponse(count, liked));
     }
 }
