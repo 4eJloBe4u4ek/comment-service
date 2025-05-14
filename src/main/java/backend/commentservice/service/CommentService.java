@@ -1,8 +1,10 @@
 package backend.commentservice.service;
 
+import backend.commentservice.client.AuthClient;
 import backend.commentservice.client.NewsClient;
 import backend.commentservice.dto.CommentResponse;
 import backend.commentservice.dto.ListCommentResponse;
+import backend.commentservice.dto.UserInfoResponse;
 import backend.commentservice.entity.CommentEntity;
 import backend.commentservice.entity.CommentLikeEntity;
 import backend.commentservice.exception.CommentNotFoundException;
@@ -29,6 +31,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final CommentLikeRepository commentLikeRepository;
     private final NewsClient newsClient;
+    private final AuthClient authClient;
 
     public ListCommentResponse getCommentsPage(Long newsId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "time");
@@ -47,9 +50,9 @@ public class CommentService {
     public CommentResponse createComment(Long newsId, String text) {
         newsClient.verifyNewsExists(newsId);
 
-        String author = getCurrentUserName();
+        Long authorId = getCurrentUserId();
         CommentEntity comment = new CommentEntity();
-        comment.setAuthor(author);
+        comment.setAuthorId(authorId);
         comment.setText(text);
         comment.setNewsId(newsId);
         comment.setTime(Instant.now());
@@ -59,8 +62,8 @@ public class CommentService {
     @Transactional
     public CommentResponse updateComment(Long newsId, Long commentId, String text) {
         CommentEntity comment = findCommentByIdAndNewsId(commentId, newsId);
-        String author = getCurrentUserName();
-        if (!comment.getAuthor().equals(author) && !hasAdminRole()) {
+        Long authorId = getCurrentUserId();
+        if (!comment.getAuthorId().equals(authorId) && !hasAdminRole()) {
             throw new UnauthorizedException("Access denied");
         }
 
@@ -71,8 +74,8 @@ public class CommentService {
     @Transactional
     public void deleteComment(Long newsId, Long commentId) {
         CommentEntity comment = findCommentByIdAndNewsId(commentId, newsId);
-        String author = getCurrentUserName();
-        if (!comment.getAuthor().equals(author) && !hasAdminRole()) {
+        Long authorId = getCurrentUserId();
+        if (!comment.getAuthorId().equals(authorId) && !hasAdminRole()) {
             throw new UnauthorizedException("Access denied");
         }
 
@@ -130,8 +133,8 @@ public class CommentService {
         return getAuthentication().getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
-    private String getCurrentUserName() {
-        return getAuthentication().getDetails().toString();
+    private Long getCurrentUserId() {
+        return Long.valueOf(getAuthentication().getName());
     }
 
     private CommentResponse toCommentResponse(CommentEntity commentEntity) {
@@ -146,11 +149,13 @@ public class CommentService {
         }
 
         long likesCount = commentLikeRepository.countByCommentId(commentEntity.getId());
+        UserInfoResponse userInfo = authClient.getUserById(commentEntity.getAuthorId());
         return new CommentResponse(
                 commentEntity.getId(),
                 commentEntity.getTime(),
                 commentEntity.getText(),
-                commentEntity.getAuthor(),
+                commentEntity.getAuthorId(),
+                userInfo.username(),
                 commentEntity.getNewsId(),
                 likesCount,
                 likedByMe

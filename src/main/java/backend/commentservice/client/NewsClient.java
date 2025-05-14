@@ -10,11 +10,9 @@ import reactor.core.publisher.Mono;
 @Component
 public class NewsClient {
     private final WebClient newsWebClient;
-    private final CommentServiceConfig config;
 
     public NewsClient(CommentServiceConfig config) {
-        this.config = config;
-        this.newsWebClient = WebClient.builder().baseUrl(config.baseUrl()).build();
+        this.newsWebClient = WebClient.builder().baseUrl(config.newsService().baseUrl()).build();
     }
 
     public void verifyNewsExists(Long newsId) {

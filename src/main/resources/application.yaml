@@ -1,6 +1,8 @@
 app:
   news-service:
     base-url: http://localhost:8083
+  auth-service:
+    base-url: http://localhost:8081
 
 spring:
   application:

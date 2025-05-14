@@ -1,10 +1,10 @@
 CREATE table comment
 (
-    id      BIGSERIAL PRIMARY KEY,
-    time    TIMESTAMP NOT NULL,
-    text    TEXT      NOT NULL,
-    author  TEXT      NOT NULL,
-    news_id BIGINT    NOT NULL
+    id        BIGSERIAL PRIMARY KEY,
+    time      TIMESTAMP NOT NULL,
+    text      TEXT      NOT NULL,
+    news_id   BIGINT    NOT NULL,
+    author_id BIGINT    NOT NULL
 );
 
 CREATE TABLE comment_likes
